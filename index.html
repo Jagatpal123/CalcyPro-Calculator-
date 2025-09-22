@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>CalcyPro</title>
+  <style>
+    :root{
+      --bg-1: #2c3e50;
+      --bg-2: #3498db;
+      --panel: #111318;
+      --card: #1f2a33;
+      --text: #ffffff;
+      --input-bg: #ecf0f1;
+      --input-text: #000000;
+      --accent: #3498db;
+      --btn-border: #3498db;
+      --muted: rgba(255,255,255,0.08);
+      --green: #2ecc71;
+      --red: #e74c3c;
+    }
+    :root.light{
+      --bg-1: #eaf2ff;
+      --bg-2: #f6fbff;
+      --panel: #ffffff;
+      --card: #ffffff;
+      --text: #111827;
+      --input-bg: #f0f4f9;
+      --input-text: #111827;
+      --accent: #2b6ef6;
+      --btn-border: #2b6ef6;
+      --muted: rgba(0,0,0,0.06);
+      --green: #27ae60;
+      --red: #c0392b;
+    }
+
+    *{box-sizing:border-box; margin:0; padding:0;}
+
+    html,body{height:100%;}
+
+    body{
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      background: linear-gradient(135deg, var(--bg-1), var(--bg-2));
+      color: var(--text);
+      display:flex;
+      flex-direction:column;
+      min-height:100vh;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Loading Screen */
+    #loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, var(--bg-1), var(--bg-2));
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      transition: opacity 0.5s ease;
+    }
+    
+    .loading-content {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .loading-logo {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 20px;
+      background-color: var(--accent);
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 50px;
+      font-weight: bold;
+      color: white;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      animation: pulse 1.5s infinite alternate;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.1); }
+    }
+    
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+      margin-bottom: 20px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+      font-size: 18px;
+      font-weight: 600;
+      margin-top: 10px;
+      color: white;
+      letter-spacing: 1px;
+    }
+    
+    .loading-progress {
+      width: 200px;
+      height: 6px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 3px;
+      margin-top: 15px;
+      overflow: hidden;
+    }
+    
+    .loading-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    /* Header */
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:12px 16px;
+      background: var(--panel);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.14);
+    }
+    .left { display:flex; align-items:center; gap:12px; }
+    .menu-icon{ font-size:22px; cursor:pointer; padding:8px; border-radius:8px; user-select:none; }
+    h1{ font-size:18px; margin:0; }
+
+    /* Theme toggle */
+    .controls{ display:flex; align-items:center; gap:10px; }
+    #themeToggle{
+      background:transparent; border:2px solid var(--btn-border);
+      color:var(--text); padding:8px 10px; border-radius:10px; font-size:16px; cursor:pointer;
+    }
+    #themeToggle:hover{ background:var(--accent); color:#fff; }
+
+    /* Side menu */
+    .side-menu{
+      position: fixed; top: 0; left: -280px;
+      width: 280px; height: 100%; background: var(--panel);
+      padding-top: 72px; transition: left .28s cubic-bezier(.2,.9,.3,1); z-index:1000;
+      box-shadow: 6px 0 24px rgba(0,0,0,0.24);
+    }
+    .side-menu.open{ left: 0; }
+    .side-menu a{ display:block; padding:14px 18px; color:var(--text); text-decoration:none; border-bottom:1px solid var(--muted); font-weight:600; }
+    .side-menu a:hover{ background: rgba(0,0,0,0.06); }
+
+    /* Main layout - FULL SCREEN CALCULATOR */
+    .container{ 
+      flex:1; 
+      display:flex; 
+      flex-direction: column;
+      height: calc(100vh - 60px);
+    }
+
+    /* Panel - FULL SCREEN */
+    .panel{
+      width:100%;
+      height: 100%;
+      background: var(--card);
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+    }
+
+    /* Calculator: full screen layout */
+    .calculator{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: 2fr repeat(5, 1fr); /* Increased display height */
+      gap:12px;
+      height: 100%;
+      align-items: stretch;
+    }
+
+    /* BIG display: full width with horizontal scrolling - HEIGHT INCREASED */
+    .display-container {
+      grid-column: 1 / -1;
+      position: relative;
+      border-radius: 14px;
+      background: var(--input-bg);
+      box-shadow: inset 0 -8px 20px rgba(0,0,0,0.08);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      min-height: 160px; /* Increased height */
+    }
+    
+    .display{
+      width: 100%;
+      border: none;
+      padding: 20px;
+      text-align: right;
+      font-size: 12vw; /* Slightly larger font */
+      font-weight: 900;
+      background: transparent;
+      color: var(--input-text);
+      overflow-x: auto;
+      overflow-y: hidden;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      scrollbar-width: thin;
+      -ms-overflow-style: none;
+    }
+    
+    .display::-webkit-scrollbar {
+      height: 6px;
+    }
+    
+    .display::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 3px;
+    }
+
+    /* Buttons: reduced height, digit buttons doubled in size */
+    .calc-btn{
+      border-radius:16px;
+      background: transparent;
+      color: var(--text);
+      font-size: 6vw;
+      font-weight:900;
+      border: 2px solid var(--btn-border);
+      cursor: pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition: transform .12s ease, background .12s ease, box-shadow .12s ease;
+      width:100%;
+      user-select:none;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.14);
+      min-height: 60px; /* Reduced button height */
+    }
+    
+    /* Digit buttons - doubled in size */
+    .digit-btn {
+      font-size: 9vw !important; /* Larger font for digits */
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .calc-btn:hover{
+      transform: translateY(-6px) scale(1.04);
+      background: var(--accent);
+      color:#fff;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.22);
+    }
+    .calc-btn:active{ transform: translateY(0) scale(.98); }
+
+    .op{ border-style:solid; border-width:2px; }
+
+    /* Make 0 span two columns */
+    .btn-zero{ grid-column: span 2; }
+
+    /* Utility section (age/shelf/about) */
+    .section{
+      display:none;
+    }
+    .section.active{ 
+      display:flex; 
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .form-row{ 
+      display:flex; 
+      gap:10px; 
+      align-items:center; 
+      justify-content:center; 
+      flex-wrap:wrap; 
+      margin-top:10px; 
+    }
+    
+    .date-input-container {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 10px;
+    }
+    
+    .date-label {
+      font-size: 14px;
+      margin-bottom: 5px;
+      opacity: 0.8;
+    }
+    
+    .form-row input[type="date"]{
+      padding:12px 14px; 
+      border-radius:10px; 
+      border:2px solid var(--muted);
+      background: var(--input-bg); 
+      color: var(--input-text); 
+      font-size:16px; 
+      min-width:180px;
+    }
+    
+    .green-btn {
+      background-color: var(--green);
+      color: white;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .green-btn:hover:not(:disabled) {
+      opacity: 0.9;
+      transform: translateY(-3px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .green-btn:disabled {
+      background-color: #95a5a6;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    
+    .result-box{
+      margin-top:12px; 
+      padding:12px; 
+      border-radius:10px; 
+      background: rgba(0,0,0,0.06);
+      color: var(--text); 
+      font-weight:800; 
+      min-height:48px; 
+      display:flex; 
+      align-items:center; 
+      justify-content:center;
+      font-size:18px;
+    }
+    
+    /* About text */
+    .about{ 
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .about p{ color: var(--text); font-size: 18px; text-align: center; }
+
+    /* Ad container styles */
+    .ad-container {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin-top: auto;
+      padding: 10px 0;
+      min-height: 280px;
+    }
+    
+    .ad-container iframe {
+      border: none;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    /* Interstitial ad overlay */
+    .ad-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      display: none;
+    }
+    
+    .ad-close {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      color: white;
+      background: rgba(0, 0, 0, 0.5);
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      font-size: 24px;
+      cursor: pointer;
+      z-index: 10001;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width:520px){
+      .panel{ padding:12px; }
+      .calculator{ gap:8px; }
+      .display{ 
+        padding:16px; 
+        font-size: 14vw; /* Larger font on mobile */
+        min-height: 140px; /* Maintain increased height on mobile */
+      }
+      .calc-btn{ 
+        font-size: 7vw;
+        border-radius:12px; 
+        min-height: 50px; /* Slightly smaller buttons on mobile */
+      }
+      .digit-btn {
+        font-size: 10vw !important; /* Larger digits on mobile */
+      }
+      .result-box{ min-height:44px; font-size:16px; }
+      
+      .form-row {
+        flex-direction: column;
+      }
+      
+      .form-row input[type="date"] {
+        min-width: unset;
+        width: 100%;
+      }
+      
+      .loading-logo {
+        width: 80px;
+        height: 80px;
+        font-size: 35px;
+      }
+      
+      .loading-text {
+        font-size: 16px;
+      }
+      
+      .ad-container {
+        min-height: 250px;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .display { 
+        font-size: 80px; /* Fixed large font on desktop */
+      }
+      .calc-btn { 
+        font-size: 36px; /* Fixed font size on desktop */
+        min-height: 70px; /* Slightly taller buttons on desktop */
+      }
+      .digit-btn {
+        font-size: 48px !important; /* Larger digits on desktop */
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <div class="loading-content">
+      <div class="loading-logo">CP</div>
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Loading CalcyPro</div>
+      <div class="loading-progress">
+        <div class="loading-progress-bar" id="progress-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interstitial Ad Overlay -->
+  <div class="ad-overlay" id="adOverlay">
+    <button class="ad-close" onclick="closeAd()">×</button>
+    <div id="interstitialAd"></div>
+  </div>
+
+  <header>
+    <div class="left">
+      <div class="menu-icon" id="menuBtn" title="Menu">☰</div>
+      <h1>CalcyPro</h1>
+    </div>
+
+    <div class="controls">
+      <button id="themeToggle" title="Toggle theme">☀️</button>
+    </div>
+  </header>
+
+  <!-- Side Menu -->
+  <nav id="sideMenu" class="side-menu" aria-hidden="true">
+    <a href="#" onclick="showSection('calc')">Calculator</a>
+    <a href="#" onclick="showSection('age')">Age Calculator</a>
+    <a href="#" onclick="showSection('shelf')">Product Shelf Life</a>
+    <a href="#" onclick="showSection('about')">About</a>
+  </nav>
+
+  <main class="container">
+    <!-- Calculator panel -->
+    <section id="calc" class="panel section active">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+        <strong style="font-size:16px;">Calculator</strong>
+        <small style="opacity:.85;">CalcyPro</small>
+      </div>
+
+      <div class="calculator">
+        <div class="display-container">
+          <input id="display" class="display" type="text" readonly placeholder="0">
+        </div>
+
+        <button class="calc-btn" onclick="clearDisplay()">C</button>
+        <button class="calc-btn" onclick="backspace()">⌫</button>
+        <button class="calc-btn" onclick="append('%')">%</button>
+        <button class="calc-btn op" onclick="append('/')">÷</button>
+
+        <button class="calc-btn digit-btn" onclick="append('7')">7</button>
+        <button class="calc-btn digit-btn" onclick="append('8')">8</button>
+        <button class="calc-btn digit-btn" onclick="append('9')">9</button>
+        <button class="calc-btn op" onclick="append('*')">×</button>
+
+        <button class="calc-btn digit-btn" onclick="append('4')">4</button>
+        <button class="calc-btn digit-btn" onclick="append('5')">5</button>
+        <button class="calc-btn digit-btn" onclick="append('6')">6</button>
+        <button class="calc-btn op" onclick="append('-')">−</button>
+
+        <button class="calc-btn digit-btn" onclick="append('1')">1</button>
+        <button class="calc-btn digit-btn" onclick="append('2')">2</button>
+        <button class="calc-btn digit-btn" onclick="append('3')">3</button>
+        <button class="calc-btn op" onclick="append('+')">+</button>
+
+        <button class="calc-btn btn-zero digit-btn" onclick="append('0')">0</button>
+        <button class="calc-btn digit-btn" onclick="append('.')">.</button>
+        <button class="calc-btn op" onclick="calculate()">=</button>
+      </div>
+    </section>
+
+    <!-- Age Calculator panel -->
+    <section id="age" class="panel section">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+        <strong style="font-size:16px;">Age Calculator</strong>
+      </div>
+
+      <div class="form-row">
+        <input id="dob" type="date" />
+      </div>
+      
+      <div style="display:flex; justify-content:center; margin-top:10px;">
+        <button class="green-btn" onclick="calculateAge()">Calculate</button>
+      </div>
+      
+      <div id="ageResult" class="result-box">—</div>
+      
+      <!-- Banner Ad for Age Calculator -->
+      <div class="ad-container">
+        <script type="text/javascript">
+          atOptions = {
+            'key' : 'cc3ec4be82d5596919fcbe19aa9fa8c3',
+            'format' : 'iframe',
+            'height' : 250,
+            'width' : 300,
+            'params' : {}
+          };
+        </script>
+        <script type="text/javascript" src="//www.highperformanceformat.com/cc3ec4be82d5596919fcbe19aa9fa8c3/invoke.js"></script>
+      </div>
+    </section>
+
+    <!-- Shelf Life panel -->
+    <section id="shelf" class="panel section">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+        <strong style="font-size:16px;">Product Shelf Life</strong>
+      </div>
+
+      <div class="form-row">
+        <div class="date-input-container">
+          <label class="date-label">Select Mfg Date</label>
+          <input id="mfgDate" type="date" />
+        </div>
+        
+        <div class="date-input-container">
+          <label class="date-label">Select Exp Date</label>
+          <input id="expDate" type="date" />
+        </div>
+      </div>
+      
+      <div style="display:flex; justify-content:center; margin-top:10px;">
+        <button class="green-btn" onclick="calculateShelfLife()">Calculate</button>
+      </div>
+      
+      <div id="shelfResult" class="result-box">—</div>
+      
+      <!-- Banner Ad for Shelf Life Calculator -->
+      <div class="ad-container">
+        <script type="text/javascript">
+          atOptions = {
+            'key' : 'cc3ec4be82d5596919fcbe19aa9fa8c3',
+            'format' : 'iframe',
+            'height' : 250,
+            'width' : 300,
+            'params' : {}
+          };
+        </script>
+        <script type="text/javascript" src="//www.highperformanceformat.com/cc3ec4be82d5596919fcbe19aa9fa8c3/invoke.js"></script>
+      </div>
+    </section>
+
+    <!-- About -->
+    <section id="about" class="panel section">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+        <strong style="font-size:16px;">About</strong>
+      </div>
+      <div class="about">
+        <p>🇮🇳 Made in India — CalcyPro. Fast, mobile-friendly calculator with large display & buttons.</p>
+      </div>
+      
+      <!-- Banner Ad for About section -->
+      <div class="ad-container">
+        <script type="text/javascript">
+          atOptions = {
+            'key' : 'cc3ec4be82d5596919fcbe19aa9fa8c3',
+            'format' : 'iframe',
+            'height' : 250,
+            'width' : 300,
+            'params' : {}
+          };
+        </script>
+        <script type="text/javascript" src="//www.highperformanceformat.com/cc3ec4be82d5596919fcbe19aa9fa8c3/invoke.js"></script>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    /* ==================== LOADING SCREEN ==================== */
+    window.addEventListener('load', function() {
+      // Simulate loading progress
+      let progress = 0;
+      const progressBar = document.getElementById('progress-bar');
+      const loadingInterval = setInterval(function() {
+        progress += Math.random() * 15;
+        if (progress >= 100) {
+          progress = 100;
+          clearInterval(loadingInterval);
+          
+          // Hide loading screen with a slight delay for better UX
+          setTimeout(function() {
+            document.getElementById('loading-screen').style.opacity = '0';
+            setTimeout(function() {
+              document.getElementById('loading-screen').style.display = 'none';
+            }, 500);
+          }, 300);
+        }
+        progressBar.style.width = progress + '%';
+      }, 200);
+      
+      // Initialize the rest of the app
+      applyThemeFromStorage();
+    });
+
+    /* -------------------------
+       UI: Menu & Section logic
+       ------------------------- */
+    const menuBtn = document.getElementById('menuBtn');
+    const sideMenu = document.getElementById('sideMenu');
+    // header menu icon (supports both clicking icon and small left area)
+    const menuIcon = document.getElementById('menuBtn');
+    if(menuIcon) menuIcon.addEventListener('click', () => { sideMenu.classList.toggle('open'); sideMenu.setAttribute('aria-hidden', !sideMenu.classList.contains('open')); });
+
+    function showSection(id){
+      sideMenu.classList.remove('open');
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      const el = document.getElementById(id);
+      if(el) el.classList.add('active');
+      // focus first input in section for convenience
+      setTimeout(()=> {
+        const input = el ? el.querySelector('input[type="date"], input') : null;
+        if(input) input.focus();
+      }, 160);
+    }
+
+    /* -------------------------
+       Theme toggle (persist)
+       ------------------------- */
+    const root = document.documentElement;
+    const themeBtn = document.getElementById('themeToggle');
+    function applyThemeFromStorage(){
+      const saved = localStorage.getItem('calcypro-theme');
+      if(saved === 'light'){ root.classList.add('light'); themeBtn.textContent = '🌙'; themeBtn.title = 'Switch to dark'; }
+      else { root.classList.remove('light'); themeBtn.textContent = '☀️'; themeBtn.title = 'Switch to light'; }
+    }
+
+    themeBtn.addEventListener('click', () => {
+      root.classList.toggle('light');
+      const isLight = root.classList.contains('light');
+      localStorage.setItem('calcypro-theme', isLight ? 'light' : 'dark');
+      themeBtn.textContent = isLight ? '🌙' : '☀️';
+      themeBtn.title = isLight ? 'Switch to dark' : 'Switch to light';
+    });
+
+    /* -------------------------
+       Calculator logic
+       ------------------------- */
+    const display = document.getElementById('display');
+    let currentInput = "";
+
+    function append(value){
+      if(currentInput.length > 100) return; // Allow up to 100 characters
+      currentInput += value;
+      renderDisplay();
+      // Auto-scroll to the right to show the latest input
+      setTimeout(() => {
+        display.scrollLeft = display.scrollWidth;
+      }, 10);
+    }
+
+    function renderDisplay(){
+      display.value = currentInput || "";
+    }
+
+    function clearDisplay(){
+      currentInput = "";
+      renderDisplay();
+    }
+
+    function backspace(){
+      currentInput = currentInput.slice(0, -1);
+      renderDisplay();
+    }
+
+    function calculate(){
+      try{
+        if(currentInput.trim() === "") return;
+        
+        // Replace visual symbols with JavaScript operators
+        let expression = currentInput
+          .replace(/×/g, '*')
+          .replace(/÷/g, '/')
+          .replace(/−/g, '-');
+        
+        // Handle percentages
+        if(expression.includes('%')){
+          // This is a simple percentage handler - you might want to enhance it
+          expression = expression.replace(/(\d+)%/g, function(match, number) {
+            return number / 100;
+          });
+        }
+        
+        // Use a safer evaluation method
+        const result = evaluateExpression(expression);
+        
+        if(result === Infinity || result === -Infinity || isNaN(result)) throw new Error('Math error');
+        
+        // Format the result to avoid scientific notation for large numbers
+        currentInput = formatResult(result);
+        renderDisplay();
+        
+        // Auto-scroll to show the result
+        setTimeout(() => {
+          display.scrollLeft = display.scrollWidth;
+        }, 10);
+      }catch(e){
+        display.value = "Error";
+        currentInput = "";
+      }
+    }
+
+    // Safer expression evaluation
+    function evaluateExpression(expr) {
+      // Remove any characters that aren't part of a math expression
+      expr = expr.replace(/[^0-9+\-*/.%()]/g, '');
+      
+      // Use Function constructor as before but with more error handling
+      try {
+        return Function('"use strict"; return (' + expr + ')')();
+      } catch (e) {
+        // If that fails, try a more manual approach for basic operations
+        return manualEvaluation(expr);
+      }
+    }
+
+    // Manual evaluation for very large numbers or complex expressions
+    function manualEvaluation(expr) {
+      // This is a simplified version - you might want to implement a more robust solution
+      // For now, we'll just try to split by operators and calculate step by step
+      try {
+        // Handle multiplication and division first
+        const mulDivRegex = /(\d*\.?\d+)\s*([*\/])\s*(\d*\.?\d+)/;
+        while (mulDivRegex.test(expr)) {
+          expr = expr.replace(mulDivRegex, (match, a, op, b) => {
+            a = parseFloat(a);
+            b = parseFloat(b);
+            return op === '*' ? a * b : a / b;
+          });
+        }
+        
+        // Then handle addition and subtraction
+        const addSubRegex = /(\d*\.?\d+)\s*([+\-])\s*(\d*\.?\d+)/;
+        while (addSubRegex.test(expr)) {
+          expr = expr.replace(addSubRegex, (match, a, op, b) => {
+            a = parseFloat(a);
+            b = parseFloat(b);
+            return op === '+' ? a + b : a - b;
+          });
+        }
+        
+        return parseFloat(expr);
+      } catch (e) {
+        throw new Error('Evaluation error');
+      }
+    }
+
+    // Format result to avoid scientific notation
+    function formatResult(num) {
+      if (typeof num !== 'number') return String(num);
+      
+      // For very large or very small numbers, use toFixed to avoid scientific notation
+      if (Math.abs(num) > 1e15 || (Math.abs(num) < 1e-6 && num !== 0)) {
+        return num.toFixed(10).replace(/\.?0+$/, '');
+      }
+      
+      // For regular numbers, convert to string directly
+      return String(num);
+    }
+
+    /* -------------------------
+       Age calculator
+       ------------------------- */
+    // Counter for age calculator ad display
+    let ageAdCounter = 0;
+    
+    function calculateAge(){
+      const dobValue = document.getElementById('dob').value;
+      if(!dobValue){ document.getElementById('ageResult').textContent = "Select Date"; return; }
+      const dob = new Date(dobValue);
+      if(isNaN(dob.getTime())){ document.getElementById('ageResult').textContent = "Invalid Date"; return; }
+      const now = new Date();
+      if(dob > now){ document.getElementById('ageResult').textContent = "DOB is in future"; return; }
+
+      let years = now.getFullYear() - dob.getFullYear();
+      let months = now.getMonth() - dob.getMonth();
+      let days = now.getDate() - dob.getDate();
+
+      if(days < 0){
+        months -= 1;
+        const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        days += prevMonth.getDate();
+      }
+      if(months < 0){
+        years -= 1;
+        months += 12;
+      }
+      years = Math.max(0, years); months = Math.max(0, months); days = Math.max(0, days);
+      document.getElementById('ageResult').textContent = `${years} years, ${months} months, ${days} days`;
+      
+      // Show ad every 2nd calculation
+      ageAdCounter++;
+      if (ageAdCounter % 2 === 0) {
+        showInterstitialAd('age');
+      }
+    }
+
+    /* -------------------------
+       Shelf life calculator
+       ------------------------- */
+    // Counter for shelf life calculator ad display
+    let shelfAdCounter = 0;
+    
+    function calculateShelfLife(){
+      const mfgVal = document.getElementById('mfgDate').value;
+      const expVal = document.getElementById('expDate').value;
+      if(!mfgVal || !expVal){ document.getElementById('shelfResult').textContent = "Select both dates"; return; }
+
+      const mfg = new Date(mfgVal);
+      const exp = new Date(expVal);
+      if(isNaN(mfg.getTime()) || isNaN(exp.getTime())){ document.getElementById('shelfResult').textContent = "Invalid date(s)"; return; }
+      if(exp < mfg){ document.getElementById('shelfResult').textContent = "Expiry before Mfg"; return; }
+
+      let years = exp.getFullYear() - mfg.getFullYear();
+      let months = exp.getMonth() - mfg.getMonth();
+      let days = exp.getDate() - mfg.getDate();
+
+      if(days < 0){
+        months -= 1;
+        const prevMonth = new Date(exp.getYear(), exp.getMonth(), 0);
+        days += prevMonth.getDate();
+      }
+      if(months < 0){
+        years -= 1;
+        months += 12;
+      }
+      years = Math.max(0, years); months = Math.max(0, months); days = Math.max(0, days);
+      document.getElementById('shelfResult').textContent = `${years} years, ${months} months, ${days} days`;
+      
+      // Show ad every 2nd calculation
+      shelfAdCounter++;
+      if (shelfAdCounter % 2 === 0) {
+        showInterstitialAd('shelf');
+      }
+    }
+
+    /* -------------------------
+       Ad Display Functions
+       ------------------------- */
+    function showInterstitialAd(source) {
+      const adOverlay = document.getElementById('adOverlay');
+      const interstitialAd = document.getElementById('interstitialAd');
+      
+      // Clear previous ad
+      interstitialAd.innerHTML = '';
+      
+      // Create and load the ad script
+      const script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = '//pl27697251.revenuecpmgate.com/e6/32/44/e63244027b529ab919fcaf3d842923c1.js';
+      
+      interstitialAd.appendChild(script);
+      adOverlay.style.display = 'flex';
+      
+      // Auto-close the ad after 30 seconds
+      setTimeout(() => {
+        closeAd();
+      }, 30000);
+    }
+    
+    function closeAd() {
+      const adOverlay = document.getElementById('adOverlay');
+      const interstitialAd = document.getElementById('interstitialAd');
+      
+      interstitialAd.innerHTML = '';
+      adOverlay.style.display = 'none';
+    }
+
+    /* -------------------------
+       Prevent page scroll via touch (guard)
+       ------------------------- */
+    document.addEventListener('touchmove', function(e){
+      const tg = e.target;
+      if(tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.closest('.side-menu')) return;
+      e.preventDefault();
+    }, {passive:false});
+
+    /* Initialize */
+    clearDisplay();
+
+    // Close side menu if clicked outside
+    document.addEventListener('click', function(e){
+      if(!e.target.closest('.side-menu') && !e.target.closest('#menuBtn')) sideMenu.classList.remove('open');
+    });
+
+    // keyboard support
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Enter'){ calculate(); }
+      else if(e.key === 'Backspace'){ backspace(); }
+      else if(e.key === 'Escape'){ clearDisplay(); }
+      else {
+        const allowed = '0123456789.+-*/%()';
+        if(allowed.includes(e.key)) { append(e.key); }
+      }
+    });
+
+  </script>
+</body>
+</html>
